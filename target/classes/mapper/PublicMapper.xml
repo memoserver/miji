@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mijimemo.server.mapper.PublicMapper">
+    <insert id="insert" parameterType="com.mijimemo.server.entity.Public">
+        <selectKey resultType="java.lang.Long" order="AFTER" keyProperty="pub.publicId">
+            select last_insert_id()
+        </selectKey>
+        insert into public(
+            <if test="pub.eventTime != null">event_time, </if>
+            <if test="pub.location != null and pub.location != ''">location,</if>
+            user_id, title, content, publish_time)
+        values (
+        <if test="pub.eventTime != null">#{eventTime},</if>
+        <if test="pub.location != null and pub.location != ''">#{pub.location},</if>
+            #{pub.userId},#{pub.title},#{pub.content},#{pub.publishTime})
+    </insert>
+    <update id="update" parameterType="com.mijimemo.server.entity.Public">
+        update public set
+        <if test="pub.eventTime != null">event_time = #{pub.eventTime},</if>
+        <if test="pub.location != null and pub.location != ''">location = #{pub.location},</if>
+        title = #{pub.title},
+        content = #{pub.content},
+        publish_time = #{pub.publishTime}
+        where public_id = #{pub.publicId}
+    </update>
+
+    <!-- 添加图片 -->
+    <insert id="insertImages">
+        insert into public_image(public_id,image)
+        values
+        <foreach collection="images" item="image" separator="," >
+            (#{publicId},#{image})
+        </foreach>
+    </insert>
+    <!-- 添加tags -->
+    <insert id="insertTags">
+        insert into public_tag(public_id,tag_id)
+        values
+        <foreach collection="tags" item="tag" separator=",">
+            (#{publicId},#{tag})
+        </foreach>
+    </insert>
+    <!-- 添加评论 -->
+    <insert id="insertComment" parameterType="com.mijimemo.server.entity.Comment">
+        <selectKey resultType="java.lang.Long" order="AFTER" keyProperty="comment.commentId">
+            select last_insert_id()
+        </selectKey>
+        insert into memorandum.comment(user_id,public_id,content,time) values (#{comment.userId},#{comment.publicId},#{comment.content},#{comment.time})
+    </insert>
+    <!-- 添加收藏 -->
+    <insert id="insertCollect">
+        insert into collect(public_id, user_id,time) values(#{publicId},#{userId},#{time})
+    </insert>
+    <!-- 加入 -->
+    <insert id="inserJoin">
+        insert into memorandum.join(public_id, user_id,time) values (#{publicId},#{userId},#{time})
+    </insert>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        delete from public where public_id = #{publicId}
+    </delete>
+    <!-- 删除图片 -->
+    <delete id="deleteImages">
+        delete from public_image where public_id = #{publicId}
+    </delete>
+    <!-- 删除tags -->
+    <delete id="deleteTags">
+        delete from public_tag where public_id = #{publicId}
+    </delete>
+    <!-- 删除评论 -->
+    <delete id="deleteComment">
+        delete from memorandum.comment
+        where public_id = #{publicId}
+            <if test="userId != null">and user_id = #{userId}</if>
+    </delete>
+    <!-- 删除收藏 -->
+    <delete id="deleteCollect">
+        delete from collect
+        where public_id = #{publicId}
+            <if test="userId != null">and user_id = #{userId}</if>
+    </delete>
+    <!-- 删除加入 -->
+    <delete id="deleteJoin">
+        delete from memorandum.join
+        where public_id = #{publicId}
+            <if test="userId != null">and user_id = #{userId}</if>
+    </delete>
+
+    <!-- 根据条件搜索 -->
+    <select id="select" resultType="java.lang.Long">
+        select public_id
+        from public
+        where 1=1
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="title != null and title != ''">and title like '%'#{title}'%'</if>
+            <if test="publishTime != null">and publish_time = #{publishTime}</if>
+            <if test="eventTime != null">and event_time = #{eventTime}</if>
+            <if test="location != null and location != ''">and location like '%'#{location}'%'</if>
+        order by publishTime desc
+    </select>
+    <!-- 根据publicId搜索 -->
+    <select id="selectByPublicId" resultType="com.mijimemo.server.entity.Public">
+        select * from public where public_id = #{publicId}
+    </select>
+    <!-- 根据publicId搜索image -->
+    <select id="selectImgsByPublicId" resultType="java.lang.String">
+        select image from public_image where public_id = #{publicId}
+    </select>
+    <!-- 根据publicId搜索tagId -->
+    <select id="selectTagIdByPublicId" resultType="java.lang.Long">
+        select tag_id from public_tag where public_id = #{publicId}
+    </select>
+    <!-- 根据tagId搜索publicId -->
+    <select id="selectPublicIdByTagId" resultType="java.lang.Long">
+        select public_id from public_tag
+        where tag_id in
+            <foreach collection="tags" item="tag" index="index" open="(" separator="," close=")">
+                #{tag}
+            </foreach>
+    </select>
+    <!-- 根据publicId,userId搜索评论 -->
+    <select id="selectComment" resultType="com.mijimemo.server.entity.Comment">
+        select * from memorandum.comment
+        where 1 = 1
+            <if test="publicId != null">and public_id = #{publicId}</if>
+            <if test="userId != null">and user_id = #{userId}</if>
+        order by time desc
+    </select>
+    <!-- 根据userId搜索评论publicId -->
+    <select id="selectPublicIdByCommentatorId" resultType="java.lang.Long">
+        select public_id from memorandum.comment where user_id = #{userId} order by time desc
+    </select>
+    <!-- 根据userId搜索收藏publicId -->
+    <select id="selectPublicIdByCollectorId" resultType="java.lang.Long">
+        select public_id from collect where user_id = #{userId} order by time desc
+    </select>
+    <!-- 根据publicId搜索收藏userId -->
+    <select id="selectCollectorIdByPublicId" resultType="java.lang.Long">
+        select user_id from collect where public_id = #{publicId} order by time desc
+    </select>
+    <!-- 根据publicId和userId判断收藏是否存在 -->
+    <select id="selectCollectByPublicIdAndUserId" resultType="java.lang.Integer">
+        select count(*) from collect where public_id = #{publicId} and user_id = #{userId}
+    </select>
+    <!-- 根据userId搜索加入publicId -->
+    <select id="selectPublicIdByJoinerId" resultType="java.lang.Long">
+        select public_id from memorandum.join where user_id = #{userId} order by time desc
+    </select>
+    <!-- 根据publicId搜索加入userId -->
+    <select id="selectJoinerIdByPublicId" resultType="java.lang.Long">
+        select user_id from memorandum.join where public_id = #{publicId} order by time desc
+    </select>
+    <!-- 根据publicId和userId判断加入是否存在 -->
+    <select id="selectJoinByPublicIdAndUserId" resultType="java.lang.Integer">
+        select count(*) from memorandum.join where public_id = #{publicId} and user_id = #{userId}
+    </select>
+</mapper>

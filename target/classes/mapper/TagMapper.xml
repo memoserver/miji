@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mijimemo.server.mapper.TagMapper">
+    <!-- 增加不存在的tag并且查询所有tag的id -->
+    <insert id="insertTag" parameterType="java.util.List">
+        insert ignore tag(content) values
+        <foreach collection="list" item="item" separator=",">
+            (#{item})
+        </foreach>
+    </insert>
+
+    <!-- 根据content查tag-->
+    <select id="selectIdByContent" parameterType="java.lang.Long" resultType="java.lang.Long" >
+        select tag_id from tag where content = #{content}
+    </select>
+    <!-- 查 -->
+    <select id="selectIdsByContents" parameterType="java.util.List" resultType="java.lang.Long">
+        select tag_id from tag where content in
+        <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+    <select id="selectContentsById" resultType="java.lang.String">
+        select content from tag where tag_id in
+            <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                #{tagId}
+            </foreach>
+    </select>
+</mapper>

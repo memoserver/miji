@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mijimemo.server.mapper.UserMapper">
+
+    <!-- 添加用户（注册） -->
+    <insert id="insertUser">
+        insert into user(`account`, `password`, `account_type`) values (#{account}, #{password}, #{accountType});
+    </insert>
+
+    <!-- 添加tags -->
+    <insert id="insertTags">
+        insert into user_tag(user_id,tag_id) values
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{userId},#{tagId})
+        </foreach>
+    </insert>
+
+    <!-- 添加关注 -->
+    <insert id="insertFollow">
+        insert into follow(following_id, followed_id) values(#{followingId},#{followedId})
+    </insert>
+
+    <!-- 删除tag -->
+    <delete id="deleteTags">
+        delete from user_tag where user_id = #{userId}
+            <if test="tagIds != null">
+                and tag_id in
+                <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+    </delete>
+
+    <!-- 取消关注 -->
+    <delete id="deleteFollow">
+        delete from follow where following_id = #{followingId} and followed_id = #{followedId}
+    </delete>
+
+    <!-- 修改信息 -->
+    <update id="updateUser" parameterType="com.mijimemo.server.entity.User">
+        update user set
+        <trim prefix="set" suffixOverrides=",">
+            <if test="user.photo!=null and user.photo != ''">photo=#{user.photo},</if>
+            <if test="user.name!=null and user.name != ''">name=#{user.name},</if>
+            <if test="user.gender!=null and user.gender != ''">gender=#{user.gender},</if>
+            <if test="user.birth!=null and user.birth != ''">birth=#{user.birth},</if>
+            <if test="user.phone!=null and user.phone != ''">phone=#{user.phone},</if>
+            <if test="user.description!=null and user.description != ''">description=#{user.description},</if>
+            <if test="user.job!=null and user.job != ''">job=#{user.job},</if>
+            <if test="user.address!=null and user.address != ''">address=#{user.address}</if>
+        </trim>
+        where user_id = #{userId}
+    </update>
+
+    <!-- 修改密码 -->
+    <update id="updatePassword">
+        update user set password = #{password} where user_id = #{userId}
+    </update>
+
+    <!-- 根据Id获得user -->
+    <select id="selectUserById" resultType="com.mijimemo.server.entity.User">
+        select * from user
+        where 1=1
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="account != null and account != ''">and account = #{account}</if>
+    </select>
+
+    <select id="selectUsersByUserId" resultType="com.mijimemo.server.entity.User">
+        select * from user
+        where user_id in
+            <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                #{userId}
+            </foreach>
+    </select>
+
+    <select id="selectUserId" resultType="java.lang.Long">
+        select user_id from user
+        where 1 = 1
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="account != null and account != ''">and account = #{account}</if>
+            <if test="name != null and name != ''">and name like '%'#{name}'%'</if>
+            <if test="gender != null">and gender = #{gender}</if>
+            <if test="description != null and description != ''">and description like '%'#{description}'%'</if>
+            <if test="job != null and job != ''">and job like '%'#{job}'%'</if>
+    </select>
+
+    <!-- 根据Account和password获得user -->
+    <select id="selectUserByAccountAndPassword" resultType="com.mijimemo.server.entity.User">
+        select * from user where account = #{account} and password = #{password}
+    </select>
+
+    <!-- 根据userId和tagsId获得tags -->
+    <select id="selectTagsIdByUserId" resultType="java.lang.Long">
+        select tag_id from user_tag where user_id = #{userId}
+    </select>
+
+    <select id="selectUserIdByTagId" resultType="java.lang.Long">
+        select distinct user_id from user_tag
+        where tag_id in
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </select>
+
+    <select id="selectTag" resultType="java.lang.Integer">
+        select count(*) from user_tag where user_id = #{userId} and tag_id = #{tagId}
+    </select>
+
+    <!-- 根据followedId获得followingId -->
+    <select id="selectFollowingIdByFollowedId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        select following_id from follow where followed_id = #{followedId}
+    </select>
+
+    <!-- 根据followingId获得followedId -->
+    <select id="selectFollowedIdByFollowingId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        select followed_id from follow where following_id = #{followingId}
+    </select>
+
+    <select id="selectFollow" resultType="java.lang.Integer">
+        select count(*) from follow where following_id = #{followingId} and followed_id = #{followedId}
+    </select>
+</mapper>

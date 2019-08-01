@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mijimemo.server.mapper.PrivateMapper">
+    <!-- 增加private -->
+    <insert id="insert" parameterType="com.mijimemo.server.entity.Private">
+        <selectKey resultType="java.lang.Long" order="AFTER" keyProperty="privateId">
+            select last_insert_id()
+        </selectKey>
+        insert into private
+            <if test="pri.alarmTime!=null">alarm_time,</if>
+            user_id,title,content,publish_time,urgent)
+        values (
+            <if test="pri.alarmTime!=null">#{pri.alarTime},</if>
+            #{pri.userId},#{pri.title},#{pri.content},#{pri.publishTime},#{pri.urgent})
+    </insert>
+    <!-- 修改 -->
+    <update id="update" parameterType="com.mijimemo.server.entity.Private">
+        update private set
+        title = #{pri.title},
+        content = #{pri.content},
+        publish_time = #{pri.publishTime},
+        <if test="pri.alarmTime!=null">alarm_time = #{pri.alarmTime},</if>
+        urgent = #{pri.urgent}
+        where private_id = #{pri.privateId}
+    </update>
+
+    <!-- 增加图片 -->
+    <insert id="insertImages">
+        insert into private_image(private_id,image) values
+        <foreach collection="images" item="image" separator=",">
+            (#{privateId},#{image})
+        </foreach>
+    </insert>
+
+    <!-- 增加tag -->
+    <insert id="insertTags">
+        insert into private_tag(private_id, tag_id) values
+        <foreach collection="tags" item="tag" separator=",">
+            (#{privateId},#{tag})
+        </foreach>
+    </insert>
+    <!-- 修改tag -->
+    <update id="updateTag">
+        update private_tag set tag_id = #{toTagId} where private_id = #{privateId} and tag_id = #{fromTagId}
+    </update>
+
+    <!-- 根据privateId删除private -->
+    <delete id="delete" parameterType="java.lang.Long">
+        delete from private where private_id = #{privateId}
+    </delete>
+    <!-- 根据privateId删除图片 -->
+    <delete id="deleteImages" parameterType="java.lang.Long">
+        delete from private_image where private_id = #{privateId}
+    </delete>
+    <!-- 根据privateId删除tag -->
+    <delete id="deleteTags" parameterType="java.lang.Long">
+        delete from private_tag
+        where private_id = #{privateId}
+            <if test="tagId != null"> and tag_id in
+                <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+    </delete>
+
+    <select id="select" resultType="com.mijimemo.server.entity.Private">
+        select * from private
+        where 1 = 1
+            <if test="privateId != null">and private_id = #{privateId}</if>
+            <if test="userId != null">and userId = #{userId}</if>
+            <if test="title != null and title != ''">and title like '%'#{title}'%'</if>
+            <if test="publishTime != null">and publish_time = #{publishTime}</if>
+            <if test="alarmTime != null">and alarm_time = #{alarmTime}</if>
+            <if test="urgent != null">and urgent = #{urgent}</if>
+        order by publish_time desc, alarm_time desc, urgent desc
+    </select>
+    <select id="selectByPrivateId" resultType="com.mijimemo.server.entity.Private">
+        select * from private where  private_id = #{privateId}
+    </select>
+    <select id="selectImages" resultType="java.lang.String">
+        select image from private_image where private_id = #{privateId}
+    </select>
+    <select id="selectPrivateIdByTagId" resultType="java.lang.Long">
+        select private_id from private_tag where tag_id = #{tagId}
+    </select>
+    <select id="selectTagIdByPrivateId" resultType="java.lang.Long">
+        select tag_id from private_tag where private_id = #{privateId}
+    </select>
+    <select id="selectTag" resultType="java.lang.Integer">
+        select count(*) from private_tag where private_id = #{privateId} and tag_id = #{tagId}
+    </select>
+</mapper>
